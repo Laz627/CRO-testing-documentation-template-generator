@@ -70,19 +70,6 @@ EASIER_HELP = {
 }
 
 
-def get_api_key() -> str:
-    """Preference: UI-provided key > Streamlit secrets > env var."""
-    ui_key = st.session_state.get("user_openai_key", "").strip() if "user_openai_key" in st.session_state else ""
-    if ui_key:
-        return ui_key
-    # Streamlit Cloud secrets or local env
-    try:
-        from os import getenv
-        secret_key = st.secrets.get("OPENAI_API_KEY", "")
-        return secret_key or getenv("OPENAI_API_KEY", "")
-    except Exception:
-        from os import getenv
-        return getenv("OPENAI_API_KEY", "")
 
 def init_session():
     if "catalog" not in st.session_state:
@@ -223,14 +210,11 @@ def header():
     st.caption(f"{VERSION} — Guided test ideation, spec, validation, and exports (Word & Excel).")
 
 
+
 def sidebar_nav() -> str:
     page = st.sidebar.radio("Navigate", ["Create Test", "Validate", "Catalog & Export", "Admin"], index=0)
     st.sidebar.markdown("---")
-    with st.sidebar.expander("OpenAI (Optional)", expanded=False):
-        st.sidebar.caption("Provide an API key here if you prefer not to use Streamlit secrets.")
-        st.session_state.user_openai_key = st.sidebar.text_input("OpenAI API Key", value=st.session_state.get("user_openai_key", ""), type="password", help="Stored only in session memory; not persisted.")
-        if st.session_state.get("user_openai_key"):
-            st.sidebar.success("Key set for this session.")
+    st.sidebar.caption(f"{APP_TITLE} — {VERSION}")
     return page
 
 def idea_builder() -> Optional[Dict[str, Any]]:
@@ -240,9 +224,7 @@ def idea_builder() -> Optional[Dict[str, Any]]:
     page_url = st.text_input("Primary Page URL (optional)")
     test_type = st.selectbox("Test Type (to guide suggestions)", TEST_TYPES, index=2)
     colA, colB = st.columns(2)
-    with colA: use_ai = st.checkbox("Use OpenAI to generate candidate ideas", value=False)
-    with colB: temperature = st.slider("Creativity", 0.0, 1.0, 0.4) if use_ai else 0.0
-    generated = None
+        generated = None
     if st.button("Generate Ideas", use_container_width=True):
         generated = [
             {"test_name": f"{test_type}: Variant Messaging Emphasis",
@@ -258,40 +240,10 @@ def idea_builder() -> Optional[Dict[str, Any]]:
              "suggested_primary_kpi": "RTA Form Completes (Lead Form Submits)",
              "suggested_secondary_kpis": ["RTA Form Starts (Lead Form Starts)", "Bounce Rate"]},
         ]
-        if use_ai:
+        if False: # OpenAI removed
             try:
                 # Support OpenAI v1.x client if available; otherwise fallback to legacy lib if present
-                try:
-                    from openai import OpenAI  # v1.x
-                    api_key = get_api_key()
-                    if api_key:
-                        client = OpenAI(api_key=api_key)
-                        prompt = f"You are a senior CRO strategist. Propose 3 strong A/B test ideas for this goal and page.\nGoal: {goal}\nPage URL: {page_url}\nTest Type: {test_type}\nReturn JSON list with keys: test_name, hypothesis, suggested_primary_kpi, suggested_secondary_kpis."
-                        resp = client.chat.completions.create(model="gpt-4o-mini", temperature=temperature,
-                                                              messages=[{"role": "system", "content": "You are an expert CRO strategist."},
-                                                                        {"role": "user", "content": prompt}])
-                        text = resp.choices[0].message.content
-                        parsed = json.loads(text)
-                        if isinstance(parsed, list) and parsed: generated = parsed
-                    else:
-                        st.info("No OPENAI_API_KEY provided. Using built-in suggestions.")
-                except Exception:
-                    import openai  # legacy
-                    api_key = get_api_key()
-                    if api_key:
-                        openai.api_key = api_key
-                        prompt = f"You are a senior CRO strategist. Propose 3 strong A/B test ideas for this goal and page.\nGoal: {goal}\nPage URL: {page_url}\nTest Type: {test_type}\nReturn JSON list with keys: test_name, hypothesis, suggested_primary_kpi, suggested_secondary_kpis."
-                        resp = openai.ChatCompletion.create(model="gpt-4o-mini",
-                                                            messages=[{"role": "system", "content": "You are an expert CRO strategist."},
-                                                                      {"role": "user", "content": prompt}],
-                                                            temperature=temperature)
-                        text = resp["choices"][0]["message"]["content"]
-                        parsed = json.loads(text)
-                        if isinstance(parsed, list) and parsed: generated = parsed
-                    else:
-                        st.info("No OPENAI_API_KEY provided. Using built-in suggestions.")
-            except Exception as e:
-                st.warning(f"OpenAI integration failed (falling back to built-in suggestions): {e}")
+                pass
         st.session_state.idea_builder_output = generated
     out = st.session_state.idea_builder_output
     if out:
