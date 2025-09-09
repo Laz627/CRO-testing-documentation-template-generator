@@ -1,15 +1,4 @@
-# Create a GitHub-ready repo folder with a Streamlit app and support files
-import os, textwrap, zipfile, io, json, sys
-from pathlib import Path
 
-repo = Path("/mnt/data/cro-self-service-tool")
-repo.mkdir(parents=True, exist_ok=True)
-
-app_py = repo / "streamlit_app.py"
-requirements = repo / "requirements.txt"
-readme = repo / "README.md"
-
-app_code = r'''
 import os
 import io
 import math
@@ -521,24 +510,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-'''
-
-app_py.write_text(app_code, encoding="utf-8")
-
-requirements.write_text("\n".join([
-    "streamlit>=1.35.0",
-    "pandas>=2.2.2",
-    "python-docx>=1.1.0",
-    "xlsxwriter>=3.2.0",
-    "openai>=1.40.0",
-]), encoding="utf-8")
-
-readme.write_text(textwrap.dedent("""
-# Pella CRO Self‑Service Test Builder
-
-A Streamlit app for self‑service CRO test documentation, validation, and export.
-
-## Local Dev
-```bash
-pip install -r requirements.txt
-streamlit run streamlit_app.py
