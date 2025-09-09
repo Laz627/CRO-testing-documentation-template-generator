@@ -537,3 +537,8 @@ readme.write_text(textwrap.dedent("""
 # Pella CRO Self‑Service Test Builder
 
 A Streamlit app for self‑service CRO test documentation, validation, and export.
+
+## Local Dev
+```bash
+pip install -r requirements.txt
+streamlit run streamlit_app.py
