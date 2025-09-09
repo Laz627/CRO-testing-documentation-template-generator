@@ -1,1 +1,5 @@
-streamlit pandas python-docx openai xlsxwriter
+streamlit 
+pandas 
+python-docx 
+openai 
+xlsxwriter
