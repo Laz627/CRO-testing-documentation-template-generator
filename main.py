@@ -69,6 +69,21 @@ EASIER_HELP = {
     "Reality": "How realistic are assumptions & constraints? (1=weak, 5=strong)",
 }
 
+
+def get_api_key() -> str:
+    """Preference: UI-provided key > Streamlit secrets > env var."""
+    ui_key = st.session_state.get("user_openai_key", "").strip() if "user_openai_key" in st.session_state else ""
+    if ui_key:
+        return ui_key
+    # Streamlit Cloud secrets or local env
+    try:
+        from os import getenv
+        secret_key = st.secrets.get("OPENAI_API_KEY", "")
+        return secret_key or getenv("OPENAI_API_KEY", "")
+    except Exception:
+        from os import getenv
+        return getenv("OPENAI_API_KEY", "")
+
 def init_session():
     if "catalog" not in st.session_state:
         st.session_state.catalog = []
@@ -207,8 +222,16 @@ def header():
     st.title(APP_TITLE)
     st.caption(f"{VERSION} — Guided test ideation, spec, validation, and exports (Word & Excel).")
 
+
 def sidebar_nav() -> str:
-    return st.sidebar.radio("Navigate", ["Create Test", "Validate", "Catalog & Export", "Admin"], index=0)
+    page = st.sidebar.radio("Navigate", ["Create Test", "Validate", "Catalog & Export", "Admin"], index=0)
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("OpenAI (Optional)", expanded=False):
+        st.sidebar.caption("Provide an API key here if you prefer not to use Streamlit secrets.")
+        st.session_state.user_openai_key = st.sidebar.text_input("OpenAI API Key", value=st.session_state.get("user_openai_key", ""), type="password", help="Stored only in session memory; not persisted.")
+        if st.session_state.get("user_openai_key"):
+            st.sidebar.success("Key set for this session.")
+    return page
 
 def idea_builder() -> Optional[Dict[str, Any]]:
     st.subheader("Phase 1 — Idea Builder (Optional)")
@@ -240,7 +263,7 @@ def idea_builder() -> Optional[Dict[str, Any]]:
                 # Support OpenAI v1.x client if available; otherwise fallback to legacy lib if present
                 try:
                     from openai import OpenAI  # v1.x
-                    api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+                    api_key = get_api_key()
                     if api_key:
                         client = OpenAI(api_key=api_key)
                         prompt = f"You are a senior CRO strategist. Propose 3 strong A/B test ideas for this goal and page.\nGoal: {goal}\nPage URL: {page_url}\nTest Type: {test_type}\nReturn JSON list with keys: test_name, hypothesis, suggested_primary_kpi, suggested_secondary_kpis."
@@ -254,7 +277,7 @@ def idea_builder() -> Optional[Dict[str, Any]]:
                         st.info("No OPENAI_API_KEY provided. Using built-in suggestions.")
                 except Exception:
                     import openai  # legacy
-                    api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+                    api_key = get_api_key()
                     if api_key:
                         openai.api_key = api_key
                         prompt = f"You are a senior CRO strategist. Propose 3 strong A/B test ideas for this goal and page.\nGoal: {goal}\nPage URL: {page_url}\nTest Type: {test_type}\nReturn JSON list with keys: test_name, hypothesis, suggested_primary_kpi, suggested_secondary_kpis."
